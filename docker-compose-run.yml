@@ -1,0 +1,102 @@
+name : pivotscience
+
+services:
+
+  postgis:
+    build:
+        context: ./postgis
+        dockerfile: Dockerfile
+    container_name: postgis_db
+    environment:
+      
+      # # Default database required by postgres image
+      POSTGRES_DB: postgres
+
+      # # Custom databases
+      # POSTGRES_DB_LSM: ${POSTGRES_DB_LSM}
+      # POSTGRES_DB_MRP: ${POSTGRES_DB_MRP}
+
+      # Credentials
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT_EXTERNAL}:5432"
+    volumes:
+      #- ./initdb:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data
+    # networks:
+    #   - pivotscience_net
+    restart: always
+
+  osrm-routed:
+    image: rmauricianot/pivotscience-osrm:latest
+    ports:
+      - "5005:5000"
+    command: osrm-routed --max-table-size 100000 database_osrm_pivot.osrm
+    restart: always
+
+  shinylsm: 
+    build:  
+        context: ./shinylsm
+        dockerfile: Dockerfile
+    ports: 
+      - "8081:3838" 
+    volumes:
+      #- ./shinylsm/lsm:/srv/shiny-server/
+      - shiny_cache:/srv/shiny-server/app_cache
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_LSM}
+      POSTGRES_HOST: postgis_db
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT_INTERNAL: 5432    # Port INTERNE du réseau Docker (toujours 5432)
+      POSTGRES_USER: ${POSTGRES_USER}
+    # networks:
+    #   - pivotscience_net
+    depends_on: 
+      - postgis
+      - osrm-routed 
+    restart: always
+
+  shinymrp: 
+    build:  
+        context: ./shinymrp
+        dockerfile: Dockerfile
+    ports: 
+      - "8082:3838" 
+    volumes:
+      #- ./shinymrp/mrp:/srv/shiny-server/
+      - shiny_cache:/srv/shiny-server/app_cache
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_MRP}
+      POSTGRES_HOST: postgis_db
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT_INTERNAL: 5432    # Port INTERNE du réseau Docker (toujours 5432)
+      POSTGRES_USER: ${POSTGRES_USER}
+    # networks:
+    #   - pivotscience_net
+    depends_on: 
+      - postgis
+      - osrm-routed 
+    restart: always
+
+  shinyihope: 
+    build:  
+        context: ./shinyihope
+        dockerfile: Dockerfile
+    ports: 
+      - "8083:3838" 
+    volumes:
+      #- ./shinyihope/ihope:/srv/shiny-server/
+      - shiny_cache:/srv/shiny-server/app_cache
+    # networks:
+    #   - pivotscience_net
+    restart: always
+
+volumes:
+  pgdata:
+  shiny_cache:
+
+# networks:
+#   pivotscience_net:
+#     external: true

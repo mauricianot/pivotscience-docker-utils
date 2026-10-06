@@ -1,0 +1,10 @@
+name : pivotscience
+
+services:
+
+  osrm:
+    build: 
+        context: ./osrm
+        dockerfile: Dockerfile
+    ports:
+      - "5005:5000"
