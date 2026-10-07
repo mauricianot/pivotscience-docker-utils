@@ -93,9 +93,27 @@ services:
     #   - pivotscience_net
     restart: always
 
+  shinysmaller:
+    build: 
+      context: ./shinysmaller
+      dockerfile: Dockerfile
+    ports:
+    - "8086:3838"
+    volumes:
+    - smaller_cache:/srv/shiny-server/app_cache
+    - ./shinysmaller/SMALLER-shiny:/srv/shiny-server:ro #links github repo of app and data to docker container
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3838/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: always
+
 volumes:
   pgdata:
   shiny_cache:
+  smaller_cache:
 
 # networks:
 #   pivotscience_net:
