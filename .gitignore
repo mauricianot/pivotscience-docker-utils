@@ -1,0 +1,5 @@
+#avoid nestedness of git repos
+shinysmaller/SMALLER-shiny/
+
+#standard tokens just in case
+*.env
